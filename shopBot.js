@@ -13,7 +13,7 @@ client.on('message', async message => {
   const { command, args } = parseMessage(message);
 
   if (command in commands) {
-    executeCommand(command, message, args);
+    await executeCommand(command, message, args);
   }
 });
 
@@ -34,6 +34,6 @@ async function executeCommand(command, message, args) {
     await commands[command](message, args);
   } catch (error) {
     console.error(error);
-    message.reply('there was an error trying to execute that command!');
+    message.reply('There was an error trying to execute that command!');
   }
 }
