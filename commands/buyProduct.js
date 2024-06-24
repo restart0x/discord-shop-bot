@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { MessageActionRow, MessageButton, MessageEmbed } = require('discord.js');
+const { MessageEmbed } = require('discord.js');
 const dotenv = require('dotenv');
 dotenv.config();
 
@@ -8,9 +8,9 @@ const shopAPI = process.env.SHOP_API;
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('buy')
-        .setDescription('Buy a product from the shop.')
+        .setDescription('Buy one or more products from the shop.')
         .addStringOption(option => option.setName('product_id').setDescription('The ID of the product').setRequired(true))
-        .addIntegerOption(option => option.setName('quantity').setDescription('The quantity to buy').setRequired(true)),
+        .addIntegerPosition(option => option.setName('quantity').setDescription('The quantity to buy').setRequired(true)),
     async execute(interaction) {
         const productId = interaction.options.getString('product_id');
         const quantity = interaction.options.getInteger('quantity');
@@ -20,17 +20,19 @@ module.exports = {
         }
 
         try {
-            const response = await fakeApiCallToAddToCart(shopAPI, productId, quantity);
-            
+            // Assuming the API can handle a batch request
+            const productsToAdd = Array(quantity).fill(null).map(() => productId);
+            const response = await fakeApiCallToAddMultipleToCart(shopAPI, productsToAdd);
+
             if(response.success) {
                 const embed = new MessageEmbed()
-                    .setTitle('Product Added to Cart')
+                    .setTitle('Products Added to Cart')
                     .setDescription(`${quantity} x Product (ID: ${productId}) added to your cart.`)
                     .setColor('GREEN');
 
                 await interaction.reply({ embeds: [embed] });
             } else {
-                await interaction.reply({ content: 'Failed to add product to cart. Please try again.', ephemeral: true });
+                await interaction.reply({ content: 'Failed to add products to cart. Please try again.', ephemeral: true });
             }
         } catch(error) {
             console.error('Error buying product: ', error);
@@ -39,7 +41,9 @@ module.exports = {
     },
 };
 
-async function fakeApiCallToAddToCart(apiUrl, productId, quantity) {
-    console.log(`API URL: ${apiUrl}, Adding product ID: ${productId}, Quantity: ${quantity}`);
+async function fakeApiCallToAddMultipleToCart(apiUrl, productIds) {
+    console.log(`API URL: ${apiUrl}, Adding products IDs: ${productIds.join(", ")}`);
+    // Simulation of batch adding items to a cart, ideally, this should send a single request
+    // with all product IDs and quantities to the backend which then adds all of them to the cart.
     return { success: true };
 }
