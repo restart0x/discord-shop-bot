@@ -9,41 +9,58 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('buy')
         .setDescription('Buy one or more products from the shop.')
-        .addStringOption(option => option.setName('product_id').setDescription('The ID of the product').setRequired(true))
-        .addIntegerPosition(option => option.setName('quantity').setDescription('The quantity to buy').setRequired(true)),
+        .addStringOption(option => 
+            option.setName('product_id')
+            .setDescription('The ID of the product')
+            .setRequired(true))
+        .addIntegerOption(option => 
+            option.setName('quantity')
+            .setDescription('The quantity to buy')
+            .setRequired(true)),
     async execute(interaction) {
         const productId = interaction.options.getString('product_id');
         const quantity = interaction.options.getInteger('quantity');
 
-        if(quantity < 1) {
-            return interaction.reply({ content: 'Quantity must be at least 1.', ephemeral: true });
+        if (!isValidQuantity(quantity)) {
+            await interaction.reply({ content: 'Quantity must be at least 1.', ephemeral: true });
+            return;
         }
 
         try {
-            // Assuming the API can handle a batch request
-            const productsToAdd = Array(quantity).fill(null).map(() => productId);
-            const response = await fakeApiCallToAddMultipleToCart(shopAPI, productsToAdd);
+            const response = await addItemToCart(shopAPI, productId, quantity);
 
-            if(response.success) {
-                const embed = new MessageEmbed()
-                    .setTitle('Products Added to Cart')
-                    .setDescription(`${quantity} x Product (ID: ${productId}) added to your cart.`)
-                    .setColor('GREEN');
-
-                await interaction.reply({ embeds: [embed] });
+            if (response.success) {
+                await replyWithSuccess(interaction, productId, quantity);
             } else {
-                await interaction.reply({ content: 'Failed to add products to cart. Please try again.', ephemeral: true });
+                await replyWithFailure(interaction, 'Failed to add products to cart. Please try again.');
             }
-        } catch(error) {
+        } catch (error) {
             console.error('Error buying product: ', error);
-            await interaction.reply({ content: 'An error occurred while processing your request.', ephemeral: true });
+            await replyWithFailure(interaction, 'An error occurred while processing your request.');
         }
     },
 };
 
-async function fakeApiCallToAddMultipleToCart(apiUrl, productIds) {
-    console.log(`API URL: ${apiUrl}, Adding products IDs: ${productIds.join(", ")}`);
-    // Simulation of batch adding items to a cart, ideally, this should send a single request
-    // with all product IDs and quantities to the backend which then adds all of them to the cart.
+function isValidQuantity(quantity) {
+    return quantity >= 1;
+}
+
+async function addItemToCart(apiUrl, productId, quantity) {
+    const productsToAdd = Array(quantity).fill(productId);
+    console.log(`API URL: ${apinUrl}, Adding products IDs: ${productsToAdd.join(", ")}`);
+    // This function should contain the logic for adding items to a user's shopping cart.
+    // For demonstration purposes, it always returns success.
     return { success: true };
+}
+
+async function replyWithSuccess(interaction, productId, quantity) {
+    const embed = new MessageEmbed()
+        .setTitle('Products Added to Cart')
+        .setDescription(`${quantity} x Product (ID: ${productId}) added to your cart.`)
+        .setColor('GREEN');
+    await interaction.reply({ embeds: [embed] });
+}
+
+async function replyWithFailure(interaction, message) {
+    await interaction.reply({ content: message, ephemeral: true });
 }
