@@ -3,14 +3,18 @@ require('dotenv').config();
 const { prefix, token } = process.env;
 
 const client = new Discord.Client({
-  intents: ["GUILDS", "GUILD_MESSAGES"], // Specify necessary intents for your bot as per your Discord.js version
+  intents: ["GUILDS", "GUILD_MESSAGES"], 
 });
 
-const formatCartItems = (items) => items.reduce((message, item) => {
-  const itemCost = item.price * item.quantity;
-  message += `Item: ${item.name}, Price: ${item.price}, Quantity: ${item.quantity} (Cost: ${itemCost})\n`;
-  return message;
-}, '') + `Total Cost: ${items.reduce((total, item) => total + item.price * item.quantity, 0)}`;
+const calculateItemCost = (item) => item.price * item.quantity;
+
+const calculateTotalCartCost = (items) => items.reduce((total, item) => total + calculateItemCost(item), 0);
+
+const formatCartItems = (items) => {
+  let formattedItems = items.map(item => `Item: ${item.name}, Price: ${item.price}, Quantity: ${item.quantity} (Cost: ${calculateItemCost(item)})`);
+  formattedItems.push(`Total Cost: ${calculateTotalCartCost(items)}`); 
+  return formattedItems.join('\n');
+};
 
 let userCart = [
   { name: 'Item1', price: 10, quantity: 2 },
@@ -28,13 +32,17 @@ client.on('messageCreate', async message => {
   const command = args.shift().toLowerCase();
 
   if (command === 'viewcart') {
-    if (userCart.length === 0) {
-      await message.channel.send('Your cart is currently empty.');
-    } else {
-      const cartContents = formatCartItems(userCart);
-      await message.channel.send(`Here are the items in your cart:\n${cartContents}`);
-    }
+    showMessage(message);
   }
 });
+
+async function showMessage(message) {
+  if (userCart.length === 0) {
+    await message.channel.send('Your cart is currently empty.');
+  } else {
+    const cartContents = formatCartItems(userCart);
+    await message.channel.send(`Here are the items in your cart:\n${cartContents}`);
+  }
+}
 
 client.login(token);
