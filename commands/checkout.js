@@ -11,6 +11,7 @@ bot.on('ready', () => {
 
 bot.on('messageCreate', async message => {
     if (message.content === '!checkout') {
+        console.log('Checkout command received from user:', message.author.tag);
         const products = JSON.parse(process.env.STRIPE_PRICE_IDS);
         const row = new MessageActionRow().addComponents(new MessageSelectMenu({
             customId: 'select-product',
@@ -21,19 +22,25 @@ bot.on('messageCreate', async message => {
             })),
         }));
 
-        message.reply({
+        await message.reply({
             content: "Please select a product to checkout:",
             components: [row]
+        }).catch(error => {
+            console.error('Failed to send product selection message:', error);
         });
+        console.log('Product selection sent to user:', message.author.tag);
     }
 });
 
 bot.on('interactionCreate', async interaction => {
     if (!interaction.isSelectMenu()) return;
 
+    console.log('Interaction received:', interaction.customId);
+
     if (interaction.customId === 'select-product') {
         try {
             const selectedProductId = interaction.values[0];
+            console.log(`Product selected: ${selectedProductId}`);
 
             const session = await stripe.checkout.sessions.create({
                 payment_method_types: ['card'],
@@ -47,9 +54,10 @@ bot.on('interactionCreate', async interaction => {
             });
 
             await interaction.reply(`To complete your purchase, please click here: ${session.url}`);
+            console.log('Checkout session created:', session.id);
         } catch (error) {
             console.error('Checkout failed:', error);
-            interaction.reply('Sorry, there was an error processing your payment. Please try again later.');
+            await interaction.reply('Sorry, there was an error processing your payment. Please try again later.').catch(console.error);
         }
     }
 });
