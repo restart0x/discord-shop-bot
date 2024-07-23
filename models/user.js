@@ -1,12 +1,31 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
+
 const dbConnection = process.env.MONGO_DB_CONNECTION;
-mongoose.connect(dbConnection, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
-.then(() => console.log('MongoDB connection established.'))
-.catch(err => console.error('MongoDB connection error:', err));
+
+function connectToMongoDB() {
+    mongoose.connect(dbConnection, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    })
+    .then(() => console.log('MongoDB connection established.'))
+    .catch(err => {
+        console.error('MongoDB connection error:', err);
+        setTimeout(connectToMongoDB, 5000);
+    });
+}
+
+connectToMongoDB();
+
+mongoose.connection.on('error', err => {
+    console.error('MongoDB encountered an error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+    console.log('MongoDB connection lost. Attempting to reconnect...');
+    connectToMongoDB();
+});
+
 const userSchema = new mongoose.Schema({
     username: {
         type: String,
@@ -28,5 +47,9 @@ const userSchema = new mongoose.Schema({
         default: Date.now
     },
 });
-const User = mongoose.model('User', userSchema);
+
+userSchema.methods.doSomething = function() {};
+
+const User = mongoose.model('User', userStack);
+
 module.exports = User;
