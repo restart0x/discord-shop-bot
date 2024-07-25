@@ -10,8 +10,8 @@ function connectToMongoDB() {
     })
     .then(() => console.log('MongoDB connection established.'))
     .catch(err => {
-        console.error('MongoDB connection error:', err);
-        setTimeout(connectToMongoDB, 5000);
+        console.error('Failed to connect to MongoDB:', err);
+        setTimeout(connectToMongoDB, 5000); // Retry connection after 5 seconds
     });
 }
 
@@ -48,8 +48,42 @@ const userSchema = new mongoose.Schema({
     },
 });
 
-userSchema.methods.doSomething = function() {};
+userSchema.methods.doSomething = function() {
+    // Example function content
+};
 
-const User = mongoose.model('User', userStack);
+const User = mongoose.model('User', userSchema); 
 
 module.exports = User;
+
+mongoose.connection.on('connected', () => {
+    console.log('Mongoose connected to db');
+});
+
+mongoose.connection.on('reconnected', () => {
+    console.log('Connection Reestablished');
+});
+
+mongoose.connection.on('disconnected', () => {
+    console.log('Connection Disconnected');
+});
+
+mongoose.connection.on('close', () => {
+    console.log('Connection Closed');
+});
+
+mongoose.connection.on('error', (error) => {
+    console.log('ERROR: ' + error);
+});
+
+const handleExit = (signal) => {
+    console.log(`Received ${signal}. Close my server properly.`);
+    mongoose.connection.close(() => {
+        console.log('Mongoose connection disconnected due to application termination');
+        process.exit(0);
+    });
+};
+
+process.on('SIGINT', handleExit);
+process.on('SIGQUIT', handleExit);
+process.on('SIGTERM', handleExit);
