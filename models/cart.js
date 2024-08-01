@@ -1,5 +1,6 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
+
 const cartSchema = new mongoose.Schema({
   userId: {
     type: String,
@@ -28,4 +29,15 @@ const cartSchema = new mongoose.Schema({
     required: true,
   }
 });
+
+// Logging function integrated within the schema
+function logChange(doc) {
+  console.log(`Cart updated for user: ${doc.userId} at ${new Date().toLocaleString()}`);
+}
+
+// Post-save middleware to log when a cart is saved
+cartSchema.post('save', function(doc) {
+  logChange(doc);
+});
+
 module.exports = mongoose.model('Cart', cartSchema);
