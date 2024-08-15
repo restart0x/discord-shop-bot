@@ -13,19 +13,31 @@ const client = new Client({
 
 const usersFilePath = path.join(__dirname, 'users.json');
 
+let usersData = {};
 if (!fs.existsSync(usersFilePath)) {
-  fs.writeFileSync(usersFilePath, JSON.stringify({}), 'utf8');
+  fs.writeFileSync(usersFilePath, JSON.stringify({}, null, 2), 'utf8');
+} else {
+  usersData = JSON.parse(fs.readFileSync(usersFilePath, 'utf8'));
 }
 
 function getUserInfo(userId) {
-  const usersData = JSON.parse(fs.readFileSync(usersFilePath, 'utf8'));
   return usersData[userId] || null;
 }
 
 function updateUserInfo(userId, newUserInfo) {
-  const usersData = JSON.parse(fs.readFileSync(usersFilePath, 'utf8'));
   usersData[userId] = { ...usersData[userId], ...newUserInfo };
+  saveUsersDataDebounced();
+}
+
+let saveTimeout = null;
+function saveUsersData() {
   fs.writeFileSync(usersFilePath, JSON.stringify(usersData, null, 2), 'utf8');
+}
+function saveUsersDataDebounced() {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+  }
+  saveTimeout = setTimeout(saveUsersData, 5000);
 }
 
 client.once('ready', () => {
@@ -49,6 +61,10 @@ client.on('messageCreate', async message => {
     updateUserInfo(userId, newUserInfo);
     message.channel.send('User info updated.');
   }
+});
+
+process.on('exit', () => {
+  saveUsersData();
 });
 
 client.login(process.env.DISCORD_BOT_TOKEN);
