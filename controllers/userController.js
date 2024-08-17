@@ -13,11 +13,13 @@ const client = new Client({
 
 const usersFilePath = path.join(__dirname, 'users.json');
 
-let usersData = {};
-if (!fs.existsSync(usersFilePath)) {
-  fs.writeFileSync(usersFilePath, JSON.stringify({}, null, 2), 'utf8');
-} else {
-  usersData = JSON.parse(fs.readFileSync(usersFilePath, 'utf8'));
+let usersData = loadUsersData();
+
+function loadUsersData() {
+    if (fs.existsSync(usersFilePath)) {
+        return JSON.parse(fs.readFileSync(usersFilePath, 'utf8'));
+    }
+    return {};
 }
 
 function getUserInfo(userId) {
@@ -30,14 +32,13 @@ function updateUserInfo(userId, newUserInfo) {
 }
 
 let saveTimeout = null;
-function saveUsersData() {
-  fs.writeFileSync(usersFilePath, JSON.stringify(usersData, null, 2), 'utf8');
-}
 function saveUsersDataDebounced() {
   if (saveTimeout) {
     clearTimeout(saveTimeout);
   }
-  saveTimeout = setTimeout(saveUsersData, 5000);
+  saveTimeout = setTimeout(() => {
+      fs.writeFileSync(usersFilePath, JSON.stringify(usersData, null, 2), 'utf8');
+  }, 5000);
 }
 
 client.once('ready', () => {
@@ -48,23 +49,18 @@ client.on('messageCreate', async message => {
   if (message.content.startsWith('!getuserinfo')) {
     const userId = message.author.id;
     const userInfo = getUserInfo(userId);
-    if (userInfo) {
-      message.channel.send(`User info: ${JSON.stringify(userInfo)}`);
-    } else {
-      message.channel.send('User info not found.');
-    }
+    message.channel.send(userInfo ? `User info: ${JSON.stringify(userInfo)}` : 'User info not found.');
   }
 
   if (message.content.startsWith('!updateuserinfo')) {
     const userId = message.author.id;
-    const newUserInfo = { lastUpdate: new Date().toISOString() };
-    updateUserInfo(userId, newUserInfo);
+    updateUserInfo(userId, { lastUpdate: new Date().toISOString() });
     message.channel.send('User info updated.');
   }
 });
 
 process.on('exit', () => {
-  saveUsersData();
+  fs.writeFileSync(usersFilePath, JSON.stringify(usersData, null, 2), 'utf8');
 });
 
 client.login(process.env.DISCORD_BOT_TOKEN);
