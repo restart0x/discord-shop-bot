@@ -24,9 +24,9 @@ class Cart {
       const total = this.items.reduce((acc, item) => acc + item.price, 0);
       const cartContents = {
         items: this.items,
-        total: total,
+        total,
       };
-
+      
       fs.writeFileSync(process.env.CART_FILE_PATH, JSON.stringify(cartContents, null, 2));
       console.log('Checkout successful, your cart has been saved.');
     } catch (error) {
@@ -35,13 +35,22 @@ class Cart {
   }
 }
 
+async function fetchItemsDetails(itemIds) {
+  return itemIds.map(id => ({
+    id,
+    name: `Item ${id}`,
+    price: Math.floor(Math.random() * 100 + 1)
+  }));
+}
+
 const userCart = new Cart();
 
-function addToCart(item) {
+async function addToCart(itemIds) {
   try {
-    userCart.addItem(item);
+    const items = await fetchItemsDetails(itemIds);
+    items.forEach(item => userCart.addItem(item));
   } catch (error) {
-    console.error('Failed to add item to cart:', error);
+    console.error('Failed to add items to cart:', error);
   }
 }
 
